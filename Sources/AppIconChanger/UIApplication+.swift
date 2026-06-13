@@ -1,0 +1,31 @@
+//
+//  UIApplication+.swift
+//  AppIconChanger
+//
+//  Created by SwiftMan on 6/14/26.
+//
+
+#if canImport(UIKit) && !os(watchOS)
+import UIKit
+
+extension UIApplication: AppIconServiceProtocol {
+  @MainActor
+  public func setAlternateIconName(_ alternateIconName: String?) async throws {
+    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+      setAlternateIconName(alternateIconName) { error in
+        if let error {
+          continuation.resume(throwing: error)
+        } else {
+          continuation.resume()
+        }
+      }
+    }
+  }
+}
+
+extension AppIconChanger {
+  public convenience init() {
+    self.init(applicationService: UIApplication.shared)
+  }
+}
+#endif
