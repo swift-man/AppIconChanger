@@ -75,7 +75,7 @@ public final class AppIconChanger<Icon: AppIconRepresentable>: ObservableObject 
       do {
         try await setIcon(to: icon)
       } catch {
-        lastError = error
+        // setIcon(to:) records lastError before throwing.
       }
     }
   }

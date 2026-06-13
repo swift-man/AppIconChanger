@@ -20,3 +20,6 @@ jobs:
 
       - name: Run tests
         run: swift test -Xswiftc -target -Xswiftc "$(uname -m)-apple-macosx10.15"
+
+      - name: Build for iOS
+        run: xcodebuild -scheme AppIconChanger -destination 'generic/platform=iOS' build

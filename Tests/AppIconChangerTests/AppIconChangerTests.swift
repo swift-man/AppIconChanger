@@ -188,6 +188,11 @@ private final class MockIconService: AppIconServiceProtocol {
   }
 
   func resumeNextRequest() {
+    guard !suspendedRequests.isEmpty else {
+      Issue.record("resumeNextRequest called with no suspended request")
+      return
+    }
+
     suspendedRequests.removeFirst().resume()
   }
 

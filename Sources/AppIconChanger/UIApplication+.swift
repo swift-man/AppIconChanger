@@ -24,6 +24,7 @@ extension UIApplication: AppIconServiceProtocol {
 }
 
 extension AppIconChanger {
+  @available(iOSApplicationExtension, unavailable)
   public convenience init() {
     self.init(applicationService: UIApplication.shared)
   }
