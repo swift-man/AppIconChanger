@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -euo pipefail
+
+OUTPUT_PATH="${DOCS_OUTPUT_PATH:-.build/docc-site/AppIconChanger}"
+HOSTING_BASE_PATH="${HOSTING_BASE_PATH:-${DOCS_HOSTING_BASE_PATH:-AppIconChanger}}"
+
+rm -rf "$OUTPUT_PATH"
+mkdir -p "$(dirname "$OUTPUT_PATH")"
+
+swift package \
+  --allow-writing-to-directory "$OUTPUT_PATH" \
+  generate-documentation \
+  --target AppIconChanger \
+  --disable-indexing \
+  --output-path "$OUTPUT_PATH" \
+  --transform-for-static-hosting \
+  --hosting-base-path "$HOSTING_BASE_PATH"
+
+HOSTING_BASE_PATH="/${HOSTING_BASE_PATH#/}"
+export HOSTING_BASE_PATH
+perl -0pi -e '
+  my $base = $ENV{"HOSTING_BASE_PATH"};
+  s#href="/favicon\.ico"#href="$base/favicon.ico"#g;
+  s#href="/favicon\.svg"#href="$base/favicon.svg"#g;
+  s#var baseUrl = "/"#var baseUrl = "$base/"#g;
+  s#src="/js/#src="$base/js/#g;
+  s#href="/css/#href="$base/css/#g;
+' "$OUTPUT_PATH/index.html"
+
+rm -rf ./docs
+rm -rf ./AppIconChanger.doccarchive
