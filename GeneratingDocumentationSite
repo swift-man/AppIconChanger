@@ -4,11 +4,15 @@ set -euo pipefail
 
 OUTPUT_PATH="${DOCS_OUTPUT_PATH:-.build/docc-site/AppIconChanger}"
 HOSTING_BASE_PATH="${HOSTING_BASE_PATH:-${DOCS_HOSTING_BASE_PATH:-AppIconChanger}}"
+IOS_SIMULATOR_SDK="${IOS_SIMULATOR_SDK:-$(xcrun --sdk iphonesimulator --show-sdk-path)}"
+IOS_SIMULATOR_TARGET="${IOS_SIMULATOR_TARGET:-$(uname -m)-apple-ios13.0-simulator}"
 
 rm -rf "$OUTPUT_PATH"
 mkdir -p "$(dirname "$OUTPUT_PATH")"
 
 swift package \
+  --sdk "$IOS_SIMULATOR_SDK" \
+  --triple "$IOS_SIMULATOR_TARGET" \
   --allow-writing-to-directory "$OUTPUT_PATH" \
   generate-documentation \
   --target AppIconChanger \

@@ -19,4 +19,4 @@ jobs:
         run: swift --version
 
       - name: Run tests
-        run: swift test
+        run: swift test -Xswiftc -target -Xswiftc "$(uname -m)-apple-macosx10.15"
