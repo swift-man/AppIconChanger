@@ -9,7 +9,6 @@ import Combine
 import Foundation
 
 @MainActor
-@available(macOS 10.15, *)
 public final class AppIconChanger<Icon: AppIconRepresentable>: ObservableObject {
   @Published public private(set) var currentIconName: String?
   @Published public private(set) var lastError: (any Error)?

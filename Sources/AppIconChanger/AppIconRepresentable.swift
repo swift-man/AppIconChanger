@@ -7,14 +7,12 @@
 
 import Foundation
 
-@available(macOS 10.15, *)
 public protocol AppIconRepresentable: CaseIterable, Identifiable, Equatable, Sendable {
   var iconName: String? { get }
   var displayName: String { get }
 }
 
 @MainActor
-@available(macOS 10.15, *)
 public protocol AppIconServiceProtocol: AnyObject {
   var supportsAlternateIcons: Bool { get }
   var alternateIconName: String? { get }

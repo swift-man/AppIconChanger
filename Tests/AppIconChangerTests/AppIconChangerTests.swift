@@ -67,17 +67,27 @@ import Testing
 @MainActor
 @Test func changeIconSerializesRapidRequests() async throws {
   let service = MockIconService()
-  service.delayNanoseconds = 10_000_000
+  service.shouldSuspendRequests = true
   let changer = AppIconChanger<TestIcon>(applicationService: service)
 
   changer.changeIcon(to: .dark)
-  await Task.yield()
+  await service.waitForRequestCount(1)
+
   changer.changeIcon(to: .primary)
 
-  try await Task.sleep(nanoseconds: 100_000_000)
+  await Task.yield()
+
+  #expect(service.requestedIconNames == [TestIcon.dark.iconName])
+
+  service.resumeNextRequest()
+  await service.waitForRequestCount(2)
+
+  #expect(service.requestedIconNames == [TestIcon.dark.iconName, TestIcon.primary.iconName])
+
+  service.resumeNextRequest()
+  await service.waitUntilIdle()
 
   #expect(service.maximumConcurrentRequests == 1)
-  #expect(service.requestedIconNames == [TestIcon.dark.iconName, TestIcon.primary.iconName])
   #expect(changer.currentIconName == nil)
   #expect(changer.lastError == nil)
 }
@@ -114,9 +124,12 @@ private final class MockIconService: AppIconServiceProtocol {
   var alternateIconName: String?
   var requestedIconNames: [String?] = []
   var errorToThrow: (any Error)?
-  var delayNanoseconds: UInt64 = 0
+  var shouldSuspendRequests = false
   private(set) var activeRequests = 0
   private(set) var maximumConcurrentRequests = 0
+  private var requestCountWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+  private var idleWaiters: [CheckedContinuation<Void, Never>] = []
+  private var suspendedRequests: [CheckedContinuation<Void, Never>] = []
 
   init(
     supportsAlternateIcons: Bool = true,
@@ -126,17 +139,41 @@ private final class MockIconService: AppIconServiceProtocol {
     self.alternateIconName = alternateIconName
   }
 
+  func waitForRequestCount(_ count: Int) async {
+    guard requestedIconNames.count < count else { return }
+
+    await withCheckedContinuation { continuation in
+      requestCountWaiters.append((count, continuation))
+    }
+  }
+
+  func waitUntilIdle() async {
+    guard activeRequests > 0 else { return }
+
+    await withCheckedContinuation { continuation in
+      idleWaiters.append(continuation)
+    }
+  }
+
+  func resumeNextRequest() {
+    suspendedRequests.removeFirst().resume()
+  }
+
   func applyAlternateIconName(_ alternateIconName: String?) async throws {
     activeRequests += 1
     maximumConcurrentRequests = max(maximumConcurrentRequests, activeRequests)
     defer {
       activeRequests -= 1
+      resumeIdleWaitersIfNeeded()
     }
 
     requestedIconNames.append(alternateIconName)
+    resumeRequestCountWaitersIfNeeded()
 
-    if delayNanoseconds > 0 {
-      try await Task.sleep(nanoseconds: delayNanoseconds)
+    if shouldSuspendRequests {
+      await withCheckedContinuation { continuation in
+        suspendedRequests.append(continuation)
+      }
     }
 
     if let errorToThrow {
@@ -144,5 +181,30 @@ private final class MockIconService: AppIconServiceProtocol {
     }
 
     self.alternateIconName = alternateIconName
+  }
+
+  private func resumeRequestCountWaitersIfNeeded() {
+    var remainingWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+
+    for waiter in requestCountWaiters {
+      if requestedIconNames.count >= waiter.count {
+        waiter.continuation.resume()
+      } else {
+        remainingWaiters.append(waiter)
+      }
+    }
+
+    requestCountWaiters = remainingWaiters
+  }
+
+  private func resumeIdleWaitersIfNeeded() {
+    guard activeRequests == 0 else { return }
+
+    let waiters = idleWaiters
+    idleWaiters.removeAll()
+
+    for waiter in waiters {
+      waiter.resume()
+    }
   }
 }
