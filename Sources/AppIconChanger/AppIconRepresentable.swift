@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol AppIconRepresentable: CaseIterable, Identifiable, Equatable, Sendable {
+public protocol AppIconRepresentable: Sendable {
   var iconName: String? { get }
   var displayName: String { get }
 }

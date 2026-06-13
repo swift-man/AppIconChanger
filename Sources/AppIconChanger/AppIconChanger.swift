@@ -16,6 +16,8 @@ public final class AppIconChanger<Icon: AppIconRepresentable>: ObservableObject 
   private let applicationService: AppIconServiceProtocol
   private var pendingIcon: Icon?
   private var iconChangeTask: Task<Void, Never>?
+  private var isSettingIcon = false
+  private var iconOperationWaiters: [CheckedContinuation<Void, Never>] = []
 
   public var supportsAlternateIcons: Bool {
     applicationService.supportsAlternateIcons
@@ -27,6 +29,15 @@ public final class AppIconChanger<Icon: AppIconRepresentable>: ObservableObject 
   }
 
   public func setIcon(to icon: Icon) async throws {
+    await waitForIconOperationTurn()
+    defer {
+      finishIconOperationTurn()
+    }
+
+    try await applyIcon(to: icon)
+  }
+
+  private func applyIcon(to icon: Icon) async throws {
     guard supportsAlternateIcons else {
       let error = AppIconChangerError.alternateIconsUnsupported
       lastError = error
@@ -67,5 +78,25 @@ public final class AppIconChanger<Icon: AppIconRepresentable>: ObservableObject 
         lastError = error
       }
     }
+  }
+
+  private func waitForIconOperationTurn() async {
+    guard isSettingIcon else {
+      isSettingIcon = true
+      return
+    }
+
+    await withCheckedContinuation { continuation in
+      iconOperationWaiters.append(continuation)
+    }
+  }
+
+  private func finishIconOperationTurn() {
+    guard !iconOperationWaiters.isEmpty else {
+      isSettingIcon = false
+      return
+    }
+
+    iconOperationWaiters.removeFirst().resume()
   }
 }

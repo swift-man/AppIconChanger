@@ -92,6 +92,38 @@ import Testing
   #expect(changer.lastError == nil)
 }
 
+@MainActor
+@Test func setIconSerializesConcurrentRequests() async throws {
+  let service = MockIconService()
+  service.shouldSuspendRequests = true
+  let changer = AppIconChanger<TestIcon>(applicationService: service)
+
+  let firstTask = Task {
+    try await changer.setIcon(to: .dark)
+  }
+  await service.waitForRequestCount(1)
+
+  let secondTask = Task {
+    try await changer.setIcon(to: .primary)
+  }
+  await Task.yield()
+
+  #expect(service.requestedIconNames == [TestIcon.dark.iconName])
+
+  service.resumeNextRequest()
+  await service.waitForRequestCount(2)
+
+  #expect(service.requestedIconNames == [TestIcon.dark.iconName, TestIcon.primary.iconName])
+
+  service.resumeNextRequest()
+  try await firstTask.value
+  try await secondTask.value
+
+  #expect(service.maximumConcurrentRequests == 1)
+  #expect(changer.currentIconName == nil)
+  #expect(changer.lastError == nil)
+}
+
 private enum TestIcon: String, CaseIterable, Identifiable, AppIconRepresentable {
   case primary
   case dark
