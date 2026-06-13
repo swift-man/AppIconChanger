@@ -19,6 +19,3 @@ public protocol AppIconServiceProtocol: AnyObject {
 
   func setAlternateIconName(_ alternateIconName: String?) async throws
 }
-
-@available(*, deprecated, renamed: "AppIconServiceProtocol")
-public typealias URLIconServiceProtocol = AppIconServiceProtocol
