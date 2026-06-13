@@ -34,6 +34,7 @@ public final class AppIconChanger<Icon: AppIconRepresentable>: ObservableObject 
       finishIconOperationTurn()
     }
 
+    try Task.checkCancellation()
     try await applyIcon(to: icon)
   }
 

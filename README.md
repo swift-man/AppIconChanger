@@ -43,7 +43,7 @@ enum AppIcon: String, CaseIterable, Identifiable, AppIconRepresentable {
 Use `AppIconChanger` as a main-actor observable object:
 
 ```swift
-@StateObject private var iconChanger = AppIconChanger<AppIcon>()
+@ObservedObject private var iconChanger: AppIconChanger<AppIcon>
 
 Task {
   try await iconChanger.setIcon(to: .dark)
@@ -79,7 +79,11 @@ import AppIconChanger
 import SwiftUI
 
 struct IconSettingsView: View {
-  @StateObject private var iconChanger = AppIconChanger<AppIcon>()
+  @ObservedObject private var iconChanger: AppIconChanger<AppIcon>
+
+  init(iconChanger: AppIconChanger<AppIcon> = AppIconChanger()) {
+    self.iconChanger = iconChanger
+  }
 
   var body: some View {
     List(AppIcon.allCases) { icon in

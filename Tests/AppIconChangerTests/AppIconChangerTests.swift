@@ -124,6 +124,35 @@ import Testing
   #expect(changer.lastError == nil)
 }
 
+@MainActor
+@Test func setIconDoesNotApplyCancelledWaitingRequest() async throws {
+  let service = MockIconService()
+  service.shouldSuspendRequests = true
+  let changer = AppIconChanger<TestIcon>(applicationService: service)
+
+  let firstTask = Task {
+    try await changer.setIcon(to: .dark)
+  }
+  await service.waitForRequestCount(1)
+
+  let secondTask = Task {
+    try await changer.setIcon(to: .primary)
+  }
+  await Task.yield()
+  secondTask.cancel()
+
+  service.resumeNextRequest()
+  try await firstTask.value
+
+  await #expect(throws: CancellationError.self) {
+    try await secondTask.value
+  }
+
+  #expect(service.requestedIconNames == [TestIcon.dark.iconName])
+  #expect(changer.currentIconName == TestIcon.dark.iconName)
+  #expect(changer.lastError == nil)
+}
+
 private enum TestIcon: String, CaseIterable, Identifiable, AppIconRepresentable {
   case primary
   case dark
