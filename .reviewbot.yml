@@ -1,0 +1,33 @@
+version: 1
+
+review:
+  include:
+  # Package, source, tests, and docs
+  - "Package.swift"
+  - "Package.resolved"
+  - "README.md"
+  - "LICENSE"
+  - "Sources/**/*.swift"
+  - "Tests/**/*.swift"
+  - ".github/workflows/*.yml"
+
+  exclude:
+  # Generated Xcode metadata
+  - "*.xcodeproj/**"
+  - "*.xcworkspace/**"
+
+  # Local user state and build outputs
+  - "DerivedData/**"
+  - "Derived/**"
+  - "build/**"
+  - ".build/**"
+  - ".swiftpm/**"
+  - "Packages/**"
+  - "**/xcuserdata/**"
+  - "*.xcuserstate"
+
+  always_review:
+  - ".reviewbot.yml"
+  - "AGENTS.md"
+  - "Package.swift"
+  - ".github/workflows/*.yml"
