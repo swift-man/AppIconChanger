@@ -64,6 +64,24 @@ import Testing
   #expect(changer.lastError is MockIconError)
 }
 
+@MainActor
+@Test func changeIconSerializesRapidRequests() async throws {
+  let service = MockIconService()
+  service.delayNanoseconds = 10_000_000
+  let changer = AppIconChanger<TestIcon>(applicationService: service)
+
+  changer.changeIcon(to: .dark)
+  await Task.yield()
+  changer.changeIcon(to: .primary)
+
+  try await Task.sleep(nanoseconds: 100_000_000)
+
+  #expect(service.maximumConcurrentRequests == 1)
+  #expect(service.requestedIconNames == [TestIcon.dark.iconName, TestIcon.primary.iconName])
+  #expect(changer.currentIconName == nil)
+  #expect(changer.lastError == nil)
+}
+
 private enum TestIcon: String, CaseIterable, Identifiable, AppIconRepresentable {
   case primary
   case dark
@@ -96,6 +114,9 @@ private final class MockIconService: AppIconServiceProtocol {
   var alternateIconName: String?
   var requestedIconNames: [String?] = []
   var errorToThrow: (any Error)?
+  var delayNanoseconds: UInt64 = 0
+  private(set) var activeRequests = 0
+  private(set) var maximumConcurrentRequests = 0
 
   init(
     supportsAlternateIcons: Bool = true,
@@ -105,8 +126,18 @@ private final class MockIconService: AppIconServiceProtocol {
     self.alternateIconName = alternateIconName
   }
 
-  func setAlternateIconName(_ alternateIconName: String?) async throws {
+  func applyAlternateIconName(_ alternateIconName: String?) async throws {
+    activeRequests += 1
+    maximumConcurrentRequests = max(maximumConcurrentRequests, activeRequests)
+    defer {
+      activeRequests -= 1
+    }
+
     requestedIconNames.append(alternateIconName)
+
+    if delayNanoseconds > 0 {
+      try await Task.sleep(nanoseconds: delayNanoseconds)
+    }
 
     if let errorToThrow {
       throw errorToThrow

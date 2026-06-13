@@ -10,7 +10,7 @@ import UIKit
 
 extension UIApplication: AppIconServiceProtocol {
   @MainActor
-  public func setAlternateIconName(_ alternateIconName: String?) async throws {
+  public func applyAlternateIconName(_ alternateIconName: String?) async throws {
     try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
       setAlternateIconName(alternateIconName) { error in
         if let error {

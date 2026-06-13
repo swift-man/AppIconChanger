@@ -1,4 +1,4 @@
-// swift-tools-version: 6.3
+// swift-tools-version: 6.0
 
 import PackageDescription
 
@@ -6,7 +6,6 @@ let package = Package(
   name: "AppIconChanger",
   platforms: [
     .iOS(.v13),
-    .macOS(.v10_15),
   ],
   products: [
     .library(
